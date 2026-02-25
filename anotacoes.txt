@@ -1,0 +1,2 @@
+# comando para pegar a senha padrão do airflow
+docker exec -it airflow cat standalone_admin_password.txt
