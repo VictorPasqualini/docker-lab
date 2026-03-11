@@ -6,7 +6,7 @@ import pokebase as pb
 from datetime import datetime, timezone
 from airflow.operators.python import get_current_context
 
-def api_to_minio_etl_landing(**kwargs):
+def api_to_minio_ingest_landing(**kwargs):
     table_name = kwargs.get('table_name')
     bucket_name = kwargs.get('bucket_name')
     endpoint_url = kwargs.get('endpoint_url')
@@ -40,7 +40,83 @@ def api_to_minio_etl_landing(**kwargs):
         
         print(f"Pokémon {pokemon.name} (ID: {pokemon.id}) processado com sucesso.")
 
-        pokemon_dict = json.loads(json.dumps(pokemon.__dict__, default=str))
+        pokemon_dict = {
+            "id": pokemon.id,
+            "name": pokemon.name,
+            "base_experience": pokemon.base_experience,
+            "height": pokemon.height,
+            "is_default": pokemon.is_default,
+            "order": pokemon.order,
+            "weight": pokemon.weight,
+            "abilities": [
+                {
+                    "name": ability.ability.name,
+                    "url": ability.ability.url
+                }
+                for ability in pokemon.abilities
+            ],
+            "forms": [
+                {
+                    "name": form.name,
+                    "url": form.url
+                }
+                for form in pokemon.forms
+            ],
+            "game_indices": [
+                {
+                    "game_index": game_index.game_index,
+                    "version": {
+                        "name": game_index.version.name,
+                        "url": game_index.version.url
+                    }
+                }
+                for game_index in pokemon.game_indices
+            ],
+            "held_items": [
+                {
+                    "item": {
+                        "name": held_item.item.name,
+                        "url": held_item.item.url
+                    }
+                }
+                for held_item in pokemon.held_items
+            ],
+            "moves": [
+                {
+                    "move": {
+                        "name": move.move.name,
+                        "url": move.move.url
+                    }
+                }
+                for move in pokemon.moves
+            ],
+            "species": {
+                "name": pokemon.species.name,
+                "url": pokemon.species.url
+            },
+            "stats": [
+                {
+                    "base_stat": stat.base_stat,
+                    "effort": stat.effort,
+                    "stat": {
+                        "name": stat.stat.name,
+                        "url": stat.stat.url
+                    }
+                }
+                for stat in pokemon.stats
+            ],
+            "types": [
+                {
+                    "slot": type_.slot,
+                    "type": {
+                        "name": type_.type.name,
+                        "url": type_.type.url
+                    }
+                }
+                for type_ in pokemon.types
+            ]
+        } 
+
         pokemon_json = json.dumps(pokemon_dict, ensure_ascii=False)
 
         pokemon_rows.append(

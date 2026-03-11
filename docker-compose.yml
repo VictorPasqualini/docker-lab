@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   minio:
     image: minio/minio
@@ -25,6 +23,25 @@ services:
       mc alias set myminio http://minio:9000 minioadmin minio@1234! &&
       mc mb myminio/landing
       "
+
+  spark-master:
+    image: spark:python3-java17
+    container_name: spark-master
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+    command: ["/opt/spark/sbin/start-master.sh"]
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+
+  spark-worker:
+    image: spark:python3-java17
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
 
   postgres-airflow:
     image: postgres:15
@@ -55,11 +72,13 @@ services:
     depends_on:
       - postgres-airflow
       - minio
+      - spark-master
     ports:
       - "8080:8080"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/config_airflow:/opt/airflow/config_airflow
+      - ./airflow/spark_jobs:/opt/airflow/dags/spark_jobs
     command: ['airflow', 'standalone']
 
 volumes:
